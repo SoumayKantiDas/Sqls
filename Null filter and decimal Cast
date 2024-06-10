@@ -1,0 +1,121 @@
+DECLARE @Date NVARCHAR(50)
+DECLARE @pagestart INT
+DECLARE @pageend INT
+DECLARE @pageno INT
+DECLARE @pagesize INT
+
+SET @pageno = 1 
+SET @pagesize = 50
+SET @pagestart = (@pageno - 1) * @pagesize 
+SET @pageend = @pagesize
+
+-- Step 1: Aggregate employee data into a temporary table
+SELECT 
+    emp.Id, 
+    emp.UserId,
+    emp.FirstName + ' ' + emp.LastName AS EmployeeName,
+    (SELECT COUNT(*)
+     FROM Booking bk 
+     WHERE bk.CreatedBy = emp.UserId 
+       AND bk.[Status] != 'Init' 
+       AND bk.CreatedDate BETWEEN '2023-12-31 18:00:00.000' AND '2024-12-31 17:59:59.000') AS BookingCreated,
+    CAST(ISNULL((SELECT SUM(ISNULL(bk.Amount, 0) + ISNULL(bk.TravelFee, 0) +
+                          CASE WHEN bk.IsOutofServiceDeleted = 1 THEN 0 ELSE ISNULL(bk.OutOfAreaServiceFee, 0) END) 
+                 FROM Booking bk
+                 WHERE bk.CreatedBy = emp.UserId 
+                   AND bk.[Status] != 'Init' 
+                   AND bk.CreatedDate BETWEEN '2023-12-31 18:00:00.000' AND '2024-12-31 17:59:59.000'), 0) AS DECIMAL(18, 2)) AS BookingCreatedAmount,
+    (SELECT COUNT(*)
+     FROM Booking bk 
+     WHERE bk.LastUpdatedBy = emp.UserId 
+       AND bk.[Status] = 'Approved' 
+       AND bk.CreatedDate BETWEEN '2023-12-31 18:00:00.000' AND '2024-12-31 17:59:59.000') AS ApprovedBooking,
+    CAST(ISNULL((SELECT SUM(ISNULL(bk.Amount, 0) + ISNULL(bk.TravelFee, 0) +
+                          CASE WHEN bk.IsOutofServiceDeleted = 1 THEN 0 ELSE ISNULL(bk.OutOfAreaServiceFee, 0) END) 
+                 FROM Booking bk
+                 WHERE bk.CreatedBy = emp.UserId 
+                   AND bk.[Status] = 'Approved' 
+                   AND bk.CreatedDate BETWEEN '2023-12-31 18:00:00.000' AND '2024-12-31 17:59:59.000'), 0) AS DECIMAL(18, 2)) AS TotalApprovedBooking,
+    (SELECT COUNT(*)
+     FROM Booking bk 
+     WHERE bk.LastUpdatedBy = emp.UserId 
+       AND bk.[Status] = 'Scheduled' 
+       AND bk.CreatedDate BETWEEN '2023-12-31 18:00:00.000' AND '2024-12-31 17:59:59.000') AS Scheduled,
+    CAST(ISNULL((SELECT SUM(ISNULL(bk.Amount, 0) + ISNULL(bk.TravelFee, 0) +
+                          CASE WHEN bk.IsOutofServiceDeleted = 1 THEN 0 ELSE ISNULL(bk.OutOfAreaServiceFee, 0) END) 
+                 FROM Booking bk
+                 WHERE bk.CreatedBy = emp.UserId 
+                   AND bk.[Status] = 'Scheduled' 
+                   AND bk.CreatedDate BETWEEN '2023-12-31 18:00:00.000' AND '2024-12-31 17:59:59.000'), 0) AS DECIMAL(18, 2)) AS TotalScheduled,
+    (SELECT COUNT(*)
+     FROM Booking bk 
+     WHERE bk.LastUpdatedBy = emp.UserId 
+       AND bk.[Status] = 'Sent To Customer' 
+       AND bk.CreatedDate BETWEEN '2023-12-31 18:00:00.000' AND '2024-12-31 17:59:59.000') AS SentToCustomer,
+    CAST(ISNULL((SELECT SUM(ISNULL(bk.Amount, 0) + ISNULL(bk.TravelFee, 0) +
+                          CASE WHEN bk.IsOutofServiceDeleted = 1 THEN 0 ELSE ISNULL(bk.OutOfAreaServiceFee, 0) END) 
+                 FROM Booking bk
+                 WHERE bk.CreatedBy = emp.UserId 
+                   AND bk.[Status] = 'Sent To Customer' 
+                   AND bk.CreatedDate BETWEEN '2023-12-31 18:00:00.000' AND '2024-12-31 17:59:59.000'), 0) AS DECIMAL(18, 2)) AS TotalSentToCustomer,
+    (SELECT COUNT(*)
+     FROM Booking bk 
+     WHERE bk.LastUpdatedBy = emp.UserId 
+       AND bk.[Status] = 'Resend To Customer' 
+       AND bk.CreatedDate BETWEEN '2023-12-31 18:00:00.000' AND '2024-12-31 17:59:59.000') AS ResendToCustomer,
+    CAST(ISNULL((SELECT SUM(ISNULL(bk.Amount, 0) + ISNULL(bk.TravelFee, 0) +
+                          CASE WHEN bk.IsOutofServiceDeleted = 1 THEN 0 ELSE ISNULL(bk.OutOfAreaServiceFee, 0) END) 
+                 FROM Booking bk
+                 WHERE bk.CreatedBy = emp.UserId 
+                   AND bk.[Status] = 'Resend To Customer' 
+                   AND bk.CreatedDate BETWEEN '2023-12-31 18:00:00.000' AND '2024-12-31 17:59:59.000'), 0) AS DECIMAL(18, 2)) AS TotalResendToCustomer,
+    (SELECT COUNT(*)
+     FROM Booking bk 
+     WHERE bk.LastUpdatedBy = emp.UserId 
+       AND bk.[Status] = 'Declined' 
+       AND bk.CreatedDate BETWEEN '2023-12-31 18:00:00.000' AND '2024-12-31 17:59:59.000') AS Declined,
+    CAST(ISNULL((SELECT SUM(ISNULL(bk.Amount, 0) + ISNULL(bk.TravelFee, 0) +
+                          CASE WHEN bk.IsOutofServiceDeleted = 1 THEN 0 ELSE ISNULL(bk.OutOfAreaServiceFee, 0) END) 
+                 FROM Booking bk
+                 WHERE bk.CreatedBy = emp.UserId 
+                   AND bk.[Status] = 'Declined' 
+                   AND bk.CreatedDate BETWEEN '2023-12-31 18:00:00.000' AND '2024-12-31 17:59:59.000'), 0) AS DECIMAL(18, 2)) AS TotalDeclined,
+    (SELECT COUNT(*)
+     FROM Booking bk 
+     WHERE bk.LastUpdatedBy = emp.UserId 
+       AND bk.[Status] = 'Draft' 
+       AND bk.CreatedDate BETWEEN '2023-12-31 18:00:00.000' AND '2024-12-31 17:59:59.000') AS Draft,
+    CAST(ISNULL((SELECT SUM(ISNULL(bk.Amount, 0) + ISNULL(bk.TravelFee, 0) +
+                          CASE WHEN bk.IsOutofServiceDeleted = 1 THEN 0 ELSE ISNULL(bk.OutOfAreaServiceFee, 0) END) 
+                 FROM Booking bk
+                 WHERE bk.CreatedBy = emp.UserId 
+                   AND bk.[Status] = 'Draft' 
+                   AND bk.CreatedDate BETWEEN '2023-12-31 18:00:00.000' AND '2024-12-31 17:59:59.000'), 0) AS DECIMAL(18, 2)) AS TotalDraft,
+    (SELECT COUNT(*)
+     FROM Booking bk 
+     WHERE bk.LastUpdatedBy = emp.UserId 
+       AND bk.[Status] = 'Cancelled' 
+       AND bk.CreatedDate BETWEEN '2023-12-31 18:00:00.000' AND '2024-12-31 17:59:59.000') AS Cancelled,
+    CAST(ISNULL((SELECT SUM(ISNULL(bk.Amount, 0) + ISNULL(bk.TravelFee, 0) +
+                          CASE WHEN bk.IsOutofServiceDeleted = 1 THEN 0 ELSE ISNULL(bk.OutOfAreaServiceFee, 0) END) 
+                 FROM Booking bk
+                 WHERE bk.CreatedBy = emp.UserId 
+                   AND bk.[Status] = 'Cancelled' 
+                   AND bk.CreatedDate BETWEEN '2023-12-31 18:00:00.000' AND '2024-12-31 17:59:59.000'), 0) AS DECIMAL(18, 2)) AS TotalCancelled
+INTO #EmployeeData 
+FROM Employee emp
+WHERE emp.Id > 0;
+
+-- Step 2: Paginate the data
+SELECT * 
+INTO #customerFilterdata 
+FROM #EmployeeData
+
+SELECT TOP (@pagesize) * 
+FROM #customerFilterdata
+WHERE Id NOT IN (SELECT TOP (@pagestart) Id FROM #customerFilterdata ORDER BY EmployeeName ASC)
+ORDER BY EmployeeName ASC;
+
+-- Step 3: Clean up temporary tables
+DROP TABLE #EmployeeData;
+DROP TABLE #customerFilterdata;
